@@ -1,49 +1,55 @@
 import diffchecker from "../../diffchecker.app.mjs";
+import { axios } from "@pipedream/platform";
 
 export default {
   key: "diffchecker-compare-text",
   name: "Compare Text",
   description: "Compares two pieces of text and returns the result. [See the documentation](https://www.diffchecker.com/public-api/)",
-  version: "0.0.1",
+  version: "0.0.{{ts}}",
   type: "action",
   props: {
     diffchecker,
-    outputType: {
+    leftText: {
       propDefinition: [
         diffchecker,
-        "outputType",
-      ],
+        "leftText",
+      ]
+    },
+    rightText: {
+      propDefinition: [
+        diffchecker,
+        "rightText",
+      ]
     },
     diffLevel: {
       propDefinition: [
         diffchecker,
         "diffLevel",
-      ],
-      optional: true,
+      ]
     },
-    leftText: {
-      type: "string",
-      label: "Left Text",
-      description: "Left text you want to compare.",
-    },
-    rightText: {
-      type: "string",
-      label: "Right Text",
-      description: "Right text you want to compare.",
+    outputType: {
+      propDefinition: [
+        diffchecker,
+        "outputType",
+      ]
     },
   },
   async run({ $ }) {
-    const response = await this.diffchecker.compareText({
-      params: {
-        output_type: this.outputType,
-        diff_level: this.diffLevel,
-      },
+    const response = await this.diffchecker._makeRequest({
+      method: "POST",
+      path: "/text",
       data: {
         left: this.leftText,
         right: this.rightText,
+        diff_level: this.diffLevel,
+        output_type: this.outputType,
+      },
+      headers: {
+        'Content-Type': 'application/json',
       },
     });
-    $.export("$summary", "Successfully compared texts");
+
+    $.export("$summary", "Compared text successfully");
     return response;
   },
 };
