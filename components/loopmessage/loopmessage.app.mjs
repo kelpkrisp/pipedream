@@ -5,6 +5,16 @@ export default {
   type: "app",
   app: "loopmessage",
   propDefinitions: {
+    alertType: {
+      type: "string",
+      label: "Alert Type",
+      description: "The type of the alert received via webhook.",
+    },
+    senderName: {
+      type: "string",
+      label: "Sender Name",
+      description: "The name of the sender of the alert.",
+    },
     recipient: {
       type: "string",
       label: "Recipient",
@@ -14,11 +24,6 @@ export default {
       type: "string",
       label: "Text",
       description: "The text of the message.",
-    },
-    senderName: {
-      type: "string",
-      label: "Sender Name",
-      description: "Your dedicated sender name. This parameter will be ignored if you send a request to a recipient who is added as a Sandbox contact. If you've connected a phone number, you'll need to keep passing your original sender name. DON'T use a phone number as a value for this parameter.",
     },
     statusCallback: {
       type: "string",
@@ -35,7 +40,7 @@ export default {
     service: {
       type: "string",
       label: "Service",
-      description: "You can choose wich service to use to deliver the message. Your sender name must have an active SMS feature. SMS does not support `subject`, `effect`, or `reply_to_id` parameters. `attachments` in SMS - only support pictures (MMS).",
+      description: "You can choose which service to use to deliver the message. Your sender name must have an active SMS feature. SMS does not support `subject`, `effect`, or `reply_to_id` parameters. `attachments` in SMS - only support pictures (MMS).",
       options: constants.SERVICES,
       optional: true,
     },
@@ -55,7 +60,7 @@ export default {
     contacts: {
       type: "string[]",
       label: "Contacts",
-      description: "An array of contacts to send the message to. Should contains phone numbers in international formats or email addresses. Example: `[\"+13231112233\", \"steve@mac.com\", \"1(787)111-22-33\"]`. Invalid recipients will be skipped.",
+      description: "An array of contacts to send the message to. Should contain phone numbers in international formats or email addresses. Example: `[\"+13231112233\", \"steve@mac.com\", \"1(787)111-22-33\"]`. Invalid recipients will be skipped.",
     },
     region: {
       type: "string",
@@ -65,47 +70,40 @@ export default {
     },
   },
   methods: {
-    getBaseUrl(api = constants.API.SERVER) {
+    _baseUrl(api = constants.API.SERVER) {
       const baseUrl = `${constants.BASE_URL}${constants.VERSION_PATH}`;
       return baseUrl.replace(constants.API_PLACEHOLDER, api);
     },
-    getUrl(path, api) {
-      return `${this.getBaseUrl(api)}${path}`;
-    },
-    getHeaders(headers) {
-      return {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.$auth.authorization_key}`,
-        "Loop-Secret-Key": `${this.$auth.secret_api_key}`,
-        ...headers,
-      };
-    },
-    makeRequest({
-      step = this, path, headers, api, ...args
+    _makeRequest({
+      $ = this,
+      method = "POST",
+      path,
+      headers,
+      api,
+      ...otherOpts
     } = {}) {
-
+      const url = `${this._baseUrl(api)}${path}`;
       const config = {
-        headers: this.getHeaders(headers),
-        url: this.getUrl(path, api),
-        ...args,
+        method,
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.$auth.authorization_key}`,
+          "Loop-Secret-Key": `${this.$auth.secret_api_key}`,
+          ...headers,
+        },
+        ...otherOpts,
       };
-
-      return axios(step, config);
-    },
-    post(args = {}) {
-      return this.makeRequest({
-        method: "post",
-        ...args,
-      });
+      return axios($, config);
     },
     sendMessage(args = {}) {
-      return this.post({
+      return this._makeRequest({
         path: "/message/send/",
         ...args,
       });
     },
     singleLookup(args = {}) {
-      return this.app.post({
+      return this._makeRequest({
         api: constants.API.LOOKUP,
         path: "/contact/lookup/",
         ...args,
